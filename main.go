@@ -17,11 +17,13 @@ func die(err error) {
 }
 
 type cmd struct {
-	out string
+	out   string
+	debug bool
 }
 
 func (m *cmd) register(f *flag.FlagSet) {
 	f.StringVar(&m.out, "out", "-", "Output file to write to")
+	f.BoolVar(&m.debug, "debug", false, "Enable verbose output")
 }
 
 func (m *cmd) run(args []string) error {
@@ -29,7 +31,7 @@ func (m *cmd) run(args []string) error {
 		return fmt.Errorf("command takes 1 arg (dsn string), got %d args", len(args))
 	}
 
-	c, err := makeClientConfig(args[0])
+	c, err := m.makeClientConfig(args[0])
 	if err != nil {
 		return fmt.Errorf("error making my.cnf configuration: %w", err)
 	}
@@ -93,21 +95,25 @@ type ClientConfig struct {
 	SSLMode  string `toml:"ssl-mode,omitempty" json:"ssl-mode,omitempty"`
 }
 
-func makeClientConfig(dsn string) (*ClientConfig, error) {
+func (m *cmd) makeClientConfig(dsn string) (*ClientConfig, error) {
 	var (
-		m = reFull.FindStringSubmatch(dsn)
+		x = reFull.FindStringSubmatch(dsn)
 		v = make(map[string]string)
 	)
 
 	for i, group := range reFull.SubexpNames()[0:] {
 		if i != 0 && group != "" {
-			v[group] = m[i]
+			v[group] = x[i]
 		}
 	}
 
 	p, err := jsonMarshal(v)
 	if err != nil {
 		return nil, fmt.Errorf("error marshaling: %w", err)
+	}
+
+	if m.debug {
+		fmt.Fprintf(os.Stderr, "%s\n", p)
 	}
 
 	c := &ClientConfig{
