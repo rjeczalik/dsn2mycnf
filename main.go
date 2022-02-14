@@ -28,7 +28,7 @@ func (m *cmd) register(f *flag.FlagSet) {
 
 func (m *cmd) run(args []string) error {
 	if len(args) != 1 {
-		return fmt.Errorf("command takes 1 arg (dsn string), got %d args", len(args))
+		return fmt.Errorf("command takes 1 arg (dsn string), got %d args: %v", len(args), args)
 	}
 
 	c, err := m.makeClientConfig(args[0])
@@ -58,7 +58,7 @@ func (m *cmd) output() (*os.File, error) {
 		return os.Stdout, nil
 	}
 
-	f, err := os.Create("path/to/file.toml")
+	f, err := os.Create(m.out)
 	if err != nil {
 		return nil, fmt.Errorf("error creating file: %w", err)
 	}
